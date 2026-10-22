@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "AgriOps Mobile",
+    "slug": "agriops-mobile",
+    "version": "0.1.0",
+    "orientation": "default",
+    "userInterfaceStyle": "light",
+    "plugins": ["./plugins/withWindowsCmakePaths.js"],
+    "android": {
+      "package": "pl.agriops.mobile",
+      "permissions": ["INTERNET"]
+    }
+  }
+}

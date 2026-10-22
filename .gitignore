@@ -1,0 +1,16 @@
+node_modules/
+.expo/
+mobile/android/
+mobile/ios/
+dist/
+output/
+.cache/
+.gradle/
+.env
+.env.*
+!.env.example
+*.jks
+*.keystore
+local.properties
+.idea/
+/AGENTS.md

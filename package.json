@@ -1,0 +1,11 @@
+{
+  "name": "agriops-mobile-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "android": "node scripts/android.mjs",
+    "start": "npm --prefix mobile run start",
+    "typecheck": "npm --prefix mobile run typecheck",
+    "test": "node --experimental-strip-types --test tests/*.test.mjs"
+  }
+}
