@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="850" viewBox="0 215 1920 850" role="img" aria-labelledby="title description">
+  <title id="title">DFD AgriOps Mobile</title>
+  <desc id="description">Docelowy diagram przepływu danych. Użytkownik i Android przekazują dane aplikacji mobilnej. Aplikacja komunikuje się bezpośrednio przez HTTPS z API AgriOps. API korzysta z bazy oraz prywatnych plików. Aplikacja ma lokalny magazyn, a mapa w osobnym kontekście WebView pobiera kafle Geoportalu i bibliotekę Leaflet z CDN. Przerywane ramki oznaczają granice zaufania.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse" markerUnits="strokeWidth"><path d="M1 1 L11 6 L1 11 Z" fill="#192832"/></marker>
+    <style>
+      text{font-family:'Segoe UI',Arial,sans-serif;fill:#192832}
+      .boundary{fill:none;stroke:#ad5729;stroke-width:2.4;stroke-dasharray:12 9;rx:9}
+      .boundary-label{font-family:Consolas,'Courier New',monospace;font-size:20px;fill:#ad5729}
+      .entity{fill:#ffffff;stroke:#192832;stroke-width:2.4}
+      .process{fill:#ffffff;stroke:#192832;stroke-width:2.8}
+      .node-title{font-size:25px;font-weight:600;text-anchor:middle}
+      .node-detail{font-size:18px;text-anchor:middle;fill:#56616a}
+      .flow{fill:none;stroke:#192832;stroke-width:2.5;marker-end:url(#arrow)}
+      .both{marker-start:url(#arrow)}
+      .flow-label{font-size:20px;fill:#46545e}
+      .store-line{stroke:#192832;stroke-width:2.6}
+      .footer{font-size:17px;fill:#56616a}
+    </style>
+  </defs>
+
+  <rect x="0" y="215" width="1920" height="850" fill="#ffffff"/>
+
+  <rect class="boundary" x="375" y="245" width="625" height="605"/>
+  <text class="boundary-label" x="397" y="282">Sandbox aplikacji</text>
+  <rect class="boundary" x="1250" y="245" width="590" height="605"/>
+  <text class="boundary-label" x="1272" y="282">Serwer AgriOps</text>
+  <rect class="boundary" x="775" y="575" width="190" height="205"/>
+  <text class="boundary-label" x="794" y="606" style="font-size:17px">WebView</text>
+
+  <rect class="entity" x="70" y="375" width="245" height="115"/>
+  <text class="node-title" x="192.5" y="421">Użytkownik</text>
+  <text class="node-detail" x="192.5" y="453">właściciel / terminal</text>
+
+  <rect class="entity" x="70" y="655" width="245" height="130"/>
+  <text class="node-title" x="192.5" y="697" style="font-size:22px">Android / inne</text>
+  <text class="node-title" x="192.5" y="726" style="font-size:22px">aplikacje</text>
+  <text class="node-detail" x="192.5" y="759" style="font-size:16px">kamera, GPS, linki</text>
+
+  <ellipse class="process" cx="675" cy="435" rx="190" ry="76"/>
+  <text class="node-title" x="675" y="430">AgriOps Mobile</text>
+  <text class="node-detail" x="675" y="463">aplikacja Android</text>
+
+  <ellipse class="process" cx="1545" cy="435" rx="180" ry="76"/>
+  <text class="node-title" x="1545" y="430">API AgriOps</text>
+  <text class="node-detail" x="1545" y="463">sesje i dostęp do danych</text>
+
+  <path class="flow both" d="M315 435 H485"/>
+  <text class="flow-label" x="430" y="401" text-anchor="middle" style="font-size:18px">login, dane</text>
+  <text class="flow-label" x="430" y="463" text-anchor="middle" style="font-size:18px">wyniki</text>
+
+  <path class="flow both" d="M865 435 H1365"/>
+  <text class="flow-label" x="1125" y="404" text-anchor="middle" style="font-size:23px">HTTPS + sesja</text>
+  <text class="flow-label" x="1125" y="470" text-anchor="middle" style="font-size:18px">żądania / odpowiedzi</text>
+  <text class="boundary-label" x="1125" y="549" text-anchor="middle">Internet</text>
+
+  <path class="flow" d="M315 720 H365 L535 486"/>
+  <text class="flow-label" x="345" y="584" text-anchor="end" style="font-size:18px">zdjęcie, GPS,</text>
+  <text class="flow-label" x="345" y="610" text-anchor="end" style="font-size:18px">App Link / QR</text>
+
+  <path class="flow both" d="M600 505 V700"/>
+  <text class="flow-label" x="620" y="601" style="font-size:18px">tokeny,</text>
+  <text class="flow-label" x="620" y="628" style="font-size:18px">szkice i pliki</text>
+  <line class="store-line" x1="425" y1="700" x2="745" y2="700"/>
+  <line class="store-line" x1="425" y1="800" x2="745" y2="800"/>
+  <text class="node-title" x="585" y="741" style="font-size:22px;font-weight:400">Magazyn lokalny</text>
+  <text class="node-detail" x="585" y="774" style="font-size:16px">SecureStore + prywatne pliki</text>
+
+  <path class="flow both" d="M1465 503 L1400 700"/>
+  <text class="flow-label" x="1340" y="608" text-anchor="middle" style="font-size:18px">konta, pola,</text>
+  <text class="flow-label" x="1340" y="635" text-anchor="middle" style="font-size:18px">sesje i zadania</text>
+  <line class="store-line" x1="1280" y1="700" x2="1520" y2="700"/>
+  <line class="store-line" x1="1280" y1="800" x2="1520" y2="800"/>
+  <text class="node-title" x="1400" y="743" style="font-size:22px;font-weight:400">Baza danych</text>
+  <text class="node-detail" x="1400" y="775" style="font-size:16px">PostgreSQL / PostGIS</text>
+
+  <path class="flow both" d="M1640 500 L1695 700"/>
+  <text class="flow-label" x="1720" y="620" style="font-size:18px">zdjęcia</text>
+  <line class="store-line" x1="1580" y1="700" x2="1810" y2="700"/>
+  <line class="store-line" x1="1580" y1="800" x2="1810" y2="800"/>
+  <text class="node-title" x="1695" y="743" style="font-size:21px;font-weight:400">Pliki prywatne</text>
+  <text class="node-detail" x="1695" y="775" style="font-size:16px">zdjęcia obserwacji</text>
+
+  <path class="flow" d="M805 490 L870 628"/>
+  <text class="flow-label" x="862" y="549" style="font-size:18px">widok mapy</text>
+  <ellipse class="process" cx="870" cy="678" rx="76" ry="50"/>
+  <text class="node-title" x="870" y="674" style="font-size:20px">Mapa</text>
+  <text class="node-detail" x="870" y="701" style="font-size:16px">Leaflet</text>
+
+  <path class="flow both" d="M870 728 V895"/>
+  <text class="flow-label" x="891" y="812" style="font-size:18px">HTTPS</text>
+  <text class="flow-label" x="891" y="839" style="font-size:15px">kafle, JS/CSS</text>
+  <rect class="entity" x="790" y="895" width="410" height="90"/>
+  <text class="node-title" x="995" y="934" style="font-size:23px;font-weight:400">Geoportal / CDN Leaflet</text>
+  <text class="node-detail" x="995" y="964" style="font-size:16px">podkład mapy i biblioteka - bez sesji API</text>
+
+  <text class="footer" x="72" y="1034">Docelowe MVP · Sesje terminali, parowanie i funkcje terenowe są planowane.</text>
+  <text class="footer" x="1840" y="1034" text-anchor="end" style="fill:#ad5729">Przerywane ramki = granice zaufania</text>
+</svg>
