@@ -10,13 +10,13 @@ Projekt na zajęcia Bezpieczeństwo Aplikacji i Systemów Mobilnych. Poniżej zn
 | Zespół | Wojciech Kierat, Błażej Sztefka |
 | Platforma | Android; telefon właściciela i tablet w ciągniku |
 | Technologia aplikacji | React Native, TypeScript, Expo z własnym buildem deweloperskim |
-| Backend | Docelowo osobny backend mobilny ASP.NET Core połączony z prywatnym API AgriOps |
+| Backend | Istniejące API AgriOps w ASP.NET Core; aplikacja łączy się z nim bezpośrednio przez HTTPS |
 | Baza danych | PostgreSQL / PostGIS po stronie AgriOps |
 | Repozytorium | [Kieratw/agriops-mobile](https://github.com/Kieratw/agriops-mobile) |
 
 ## 1. Koncepcja aplikacji
 
-AgriOps Mobile służy do przeglądania pól, zapisywania zdjęć z lokalizacją i rejestrowania punktów pobrania próbek gleby. Właściciel planuje proste prace terenowe, a tablet w ciągniku pokazuje przypisane zadania i pozwala zgłosić ich wykonanie. Dane trafiają przez backend mobilny do AgriOps; ręczny zapis próbek pozwala korzystać z aplikacji bez gotowego ESP32.
+AgriOps Mobile służy do przeglądania pól, zapisywania zdjęć z lokalizacją i rejestrowania punktów pobrania próbek gleby. Właściciel planuje proste prace terenowe, a tablet w ciągniku pokazuje przypisane zadania i pozwala zgłosić ich wykonanie. Dane trafiają bezpośrednio do API AgriOps przez HTTPS; ręczny zapis próbek pozwala korzystać z aplikacji bez gotowego ESP32.
 
 Aplikacja jest przeznaczona dla właściciela gospodarstwa i osoby korzystającej z przypisanego terminala w ciągniku. Projekt nie obejmuje ewidencji pracowników.
 
@@ -40,8 +40,8 @@ Terminal otrzymuje własną sesję, którą właściciel może odwołać. Zakres
 | Dane | Źródło | Przechowywanie docelowe | Klasyfikacja | Uzasadnienie |
 | --- | --- | --- | --- | --- |
 | E-mail i identyfikator konta | Logowanie | Backend; w aplikacji tylko potrzebne dane sesji | Poufne | Pozwalają powiązać dane z użytkownikiem. |
-| Tokeny sesji | Backend mobilny | Chroniony magazyn systemowy telefonu lub tabletu; backend obsługuje ważność i odwołanie sesji | Poufne | Umożliwiają dostęp do konta lub terminala. |
-| Kod QR i sekret próby parowania | Terminal i backend mobilny | Backend oraz chwilowo urządzenia podczas parowania; sekret pozostaje na terminalu i nie trafia do QR | Poufne | Kod wskazuje próbę parowania, a osobny sekret pozwala terminalowi odebrać zatwierdzoną sesję. |
+| Tokeny sesji | API AgriOps | Chroniony magazyn systemowy telefonu lub tabletu; backend obsługuje ważność i odwołanie sesji | Poufne | Umożliwiają dostęp do konta lub terminala. |
+| Kod QR i sekret próby parowania | Terminal i API AgriOps | Backend oraz chwilowo urządzenia podczas parowania; sekret pozostaje na terminalu i nie trafia do QR | Poufne | Kod wskazuje próbę parowania, a osobny sekret pozwala terminalowi odebrać zatwierdzoną sesję. |
 | Pola, uprawy i przypisanie próbek | AgriOps i formularze aplikacji | AgriOps; na urządzeniu tylko dane potrzebne do pracy | Wewnętrzne | Opisują gospodarstwo i jego działalność. |
 | Zlecenia i raporty prac | Właściciel i terminal | Backend; lokalnie szkic niezakończonej pracy | Wewnętrzne | Zawierają terminy, maszyny i historię wykonania. |
 | Zdjęcia i dokładna lokalizacja | Kamera, galeria, GPS lub punkt wskazany na mapie | AgriOps; czasowo prywatna pamięć aplikacji przed wysłaniem | Szczególnie wrażliwe | Mogą ujawnić miejsce pobytu, otoczenie i przebieg pracy. |
@@ -56,7 +56,7 @@ W tabeli opisano zakres docelowy do MVP. Obecny stan implementacji znajduje się
 | Wymagana funkcja | Realizacja w aplikacji | Termin |
 | --- | --- | --- |
 | Logowanie z tokenami i co najmniej dwie role | Sesja właściciela oraz osobna sesja terminala ciągnika. Terminal wyświetla jednorazowy QR; właściciel otwiera zweryfikowany link i zatwierdza parowanie. Kontrola ról, gospodarstwa i przydzielonych zadań po stronie backendu. | Z3–Z5 |
-| Własny backend/API | Backend mobilny ASP.NET Core obsługujący sesje terminali i komunikację z prywatnym API AgriOps. | Z3–Z5 |
+| Własny backend/API | Własne API AgriOps w ASP.NET Core; rozszerzenie o sesje terminali, parowanie i funkcje mobilnego MVP. | Z3–Z5 |
 | Lokalne przechowywanie danych wrażliwych | Token sesji w magazynie systemowym przez expo-secure-store; usunięcie przy wylogowaniu. Ochrona lokalnego szkicu raportu i próbki. | Z4 |
 | Co najmniej trzy uprawnienia systemowe | Kamera do zdjęć i QR, lokalizacja do oznaczania punktów, powiadomienia do przypomnienia o dokończeniu szkicu próbki. Pokaz na Androidzie 13 lub nowszym; obsługa odmowy każdej zgody. | Z4–Z5 |
 | Deep link | Zweryfikowane Android App Links oparte na HTTPS otwierają potwierdzenie parowania QR lub szczegóły pola. Aplikacja sprawdza domenę, ścieżkę i parametry, a backend sprawdza sesję oraz uprawnienia. | Z5 |
@@ -93,19 +93,21 @@ Podstawy rozwiązania: [Android App Links](https://developer.android.com/trainin
 
 | Komponent | Technologia | Odpowiedzialność i połączenia |
 | --- | --- | --- |
-| Aplikacja mobilna | React Native, TypeScript, Expo | Interfejs właściciela i terminala, kamera, wybór zdjęć z galerii, lokalizacja, lokalna sesja; połączenie HTTPS z backendem mobilnym. |
-| Backend mobilny — planowany | ASP.NET Core | Sesje i parowanie terminali, autoryzacja żądań oraz komunikacja z AgriOps. |
-| Istniejące API AgriOps | ASP.NET Core | Dane gospodarstw i reguły dostępu; komunikacja z bazą danych. |
+| Aplikacja mobilna | React Native, TypeScript, Expo | Interfejs właściciela i terminala, kamera, wybór zdjęć z galerii, lokalizacja, lokalna sesja; bezpośrednie połączenie HTTPS z API AgriOps. |
+| Istniejące API AgriOps | ASP.NET Core | Dane gospodarstw, logowanie, sesje i reguły dostępu; komunikacja z bazą danych. Sesje terminali, parowanie i mobilne zlecenia są planowanym rozszerzeniem tego backendu. |
 | Baza danych | PostgreSQL / PostGIS | Dane gospodarstw, pól, lokalizacji i zapisów terenowych; dostęp przez backend. |
 | Mapa w WebView | Leaflet, Geoportal i CDN unpkg | Publiczny podkład mapowy i biblioteka mapy; niezależne od sesji API. |
 | ESP32 — rozszerzenie | Do ustalenia po MVP | Komunikacja z aplikacją przy pobieraniu próbek. |
 
 Szkic docelowy:
 
+Szczegółowy [diagram przepływu danych (DFD)](docs/threat-model/README.md)
+pokazuje granice zaufania i bezpośrednią komunikację z API AgriOps. Zawiera
+edytowalne źródło Mermaid oraz eksporty PNG i SVG.
+
 ```mermaid
 flowchart LR
-    App["Aplikacja Android"] -->|HTTPS| Mobile["Backend mobilny — planowany"]
-    Mobile -->|HTTPS| API["Prywatne API AgriOps"]
+    App["Aplikacja Android"] -->|HTTPS| API["API AgriOps"]
     API --> DB[("PostgreSQL / PostGIS")]
     App --> Map["Mapa w WebView"]
     Map --> Geo["Geoportal — podkład"]
@@ -113,13 +115,13 @@ flowchart LR
     App -.-> ESP["ESP32 — rozszerzenie"]
 ```
 
-Obecny szkielet korzysta bezpośrednio z istniejącego API AgriOps i jego sesji opartej na ciasteczkach. Backend mobilny, tokeny terminala i parowanie QR zostaną dodane w kolejnych etapach. Dane gospodarstw pozostają po stronie AgriOps, a dostęp do nich wymaga sprawdzenia gospodarstwa i uprawnień na serwerze.
+Obecny szkielet korzysta bezpośrednio z istniejącego API AgriOps i jego sesji opartej na ciasteczkach. Ten sam backend zostanie rozszerzony o tokeny terminala, parowanie QR i pozostałe funkcje mobilne. Dane gospodarstw pozostają po stronie AgriOps, a dostęp do nich wymaga sprawdzenia gospodarstwa i uprawnień na serwerze.
 
 ## 6. Podział pracy w zespole
 
 | Osoba | Główna odpowiedzialność | Obszary bezpieczeństwa |
 | --- | --- | --- |
-| Wojciech Kierat | Główny szkielet aplikacji, logowanie i sesje, integracja z API, backend mobilny, parowanie QR i obsługa zleceń właściciel–ciągnik. | MASVS-AUTH, MASVS-NETWORK; autoryzacja i izolacja gospodarstw w API. |
+| Wojciech Kierat | Główny szkielet aplikacji, logowanie i sesje, integracja z API, rozszerzenia backendu AgriOps, parowanie QR i obsługa zleceń właściciel–ciągnik. | MASVS-AUTH, MASVS-NETWORK; autoryzacja i izolacja gospodarstw w API. |
 | Błażej Sztefka | Moduł terenowy: mapa, zdjęcia z kamery i galerii, GPS, punkty próbek, uprawnienia i deep link. Testy funkcjonalne i bezpieczeństwa, dokumentacja MASVS oraz dowody z weryfikacji. | MASVS-STORAGE, MASVS-PLATFORM, MASVS-PRIVACY. |
 | Wspólnie | Architektura, model zagrożeń, przegląd kodu drugiej osoby, integracja modułów i prezentacja. | MASVS-CRYPTO, MASVS-CODE, MASVS-RESILIENCE i końcowa checklista. |
 
@@ -128,7 +130,7 @@ Obecny szkielet korzysta bezpośrednio z istniejącego API AgriOps i jego sesji 
 | Zajęcia | Planowany rezultat |
 | --- | --- |
 | Z2 | Repozytorium z dostępem prowadzącego, karta projektu w README, budujący i uruchamiający się szkielet oraz szkic architektury. Właściciel ma formularz logowania i listę pól z API, terminal ma mapę. |
-| Z3 | Podstawowy backend mobilny, sesje i role. Pierwsze zlecenie uprawy gleby utworzone przez właściciela i widoczne dla przypisanego ciągnika. Wstępny diagram przepływu danych i lista zagrożeń. |
+| Z3 | Rozszerzenie API AgriOps o sesje i role terminali. Pierwsze zlecenie uprawy gleby utworzone przez właściciela i widoczne dla przypisanego ciągnika. Wstępny diagram przepływu danych i lista zagrożeń. |
 | Z4 | Zdjęcie z kamery lub galerii, lokalizacja i punkt próbki zapisują się przez API. Terminal rejestruje rozpoczęcie, zakończenie i raport pracy. Chroniony magazyn sesji oraz zachowanie szkicu po restarcie i utracie połączenia. |
 | Z5 — MVP | Pełny scenariusz zlecenie → wykonanie → zatwierdzenie. Działają pozycje umowy: tokeny, role, QR ze zweryfikowanym App Linkiem i potwierdzeniami, trzy uprawnienia, linki do pól, WebView i opcjonalne odblokowanie biometrią. Model zagrożeń v1. |
 
@@ -161,7 +163,7 @@ Rola pracownika została zastąpiona terminalem przypisanym do ciągnika. Zachow
 
 ## Stan aplikacji
 
-Szkielet zawiera wybór trybu, formularz logowania do istniejącego AgriOps, wybór gospodarstwa, pobranie listy pól i mapę Geoportalu. Pełne role, backend mobilny, tokeny terminali, parowanie QR, weryfikacja App Links, kamera i galeria, próbki oraz zlecenia nie są jeszcze zaimplementowane.
+Szkielet zawiera wybór trybu, formularz logowania do istniejącego AgriOps, wybór gospodarstwa, pobranie listy pól i mapę Geoportalu. Pełne role, mobilne rozszerzenia API, tokeny terminali, parowanie QR, weryfikacja App Links, kamera i galeria, próbki oraz zlecenia nie są jeszcze zaimplementowane.
 
 Szkielet został zbudowany i uruchomiony na emulatorze. Sprawdzono ekran wyboru, formularz i mapę. Logowanie prawdziwym kontem oraz odczyt prywatnych gospodarstw i pól wymagają jeszcze sprawdzenia na urządzeniu.
 
