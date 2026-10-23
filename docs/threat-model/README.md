@@ -7,8 +7,11 @@ gospodarstwa i terminala w ciągniku oraz jej droga do danych AgriOps.
 przez HTTPS. Sesje terminali, parowanie, SecureStore, zdjęcia i szkice są
 planowanymi rozszerzeniami. Obecny szkielet używa sesji opartej na cookies.
 
-Źródłem szczegółowych diagramów są bloki Mermaid w tym pliku. Obok znajdują się eksporty
-PNG do oddania lub wklejenia do sprawozdania oraz SVG do powiększania.
+[Model zagrożeń v1](threat-model-v1.md) zawiera rejestr STRIDE, ocenę ryzyka,
+decyzje, wymagania oraz statusy i miejsce na dowody weryfikacji.
+
+Źródłem szczegółowych diagramów są bloki Mermaid w tym pliku. Diagram skrótowy
+jest dostępny jako PNG oraz edytowalny SVG.
 
 ## Diagram skrótowy
 
@@ -67,8 +70,6 @@ flowchart LR
     style G2 fill:#fafafa,stroke:#b45309,stroke-width:2px,stroke-dasharray:7 5
     style G3 fill:#ffffff,stroke:#b45309,stroke-width:2px,stroke-dasharray:7 5
 ```
-
-[PNG](dfd-system.png) | [SVG](dfd-system.svg)
 
 ### Dane w przepływach
 
@@ -146,8 +147,6 @@ flowchart LR
     style G5 fill:#fafafa,stroke:#b45309,stroke-width:2px,stroke-dasharray:7 5
 ```
 
-[PNG](dfd-device.png) | [SVG](dfd-device.svg)
-
 ### Dane lokalne i wejścia z zewnątrz
 
 | ID | Znaczenie i ograniczenie |
@@ -196,8 +195,8 @@ jest kategorią projektu.
 | F11: link → aplikacja | Źródło zewnętrzne → G1 | Czy podmieniony link lub powtórzone QR może otworzyć cudze dane albo zatwierdzić parowanie bez wymaganych potwierdzeń? |
 | F19-F20: WebView ↔ CDN | G4 → sieć → G5 | Co może odczytać lub zmienić kod biblioteki, jeżeli dostawca albo pobrany zasób zostanie przejęty? |
 
-To punkty wejścia do analizy, a nie potwierdzone podatności. Rejestr zagrożeń
-STRIDE i ocena ryzyka są osobnym artefaktem.
+To punkty wejścia do analizy. Rejestr STRIDE i ocena ryzyka znajdują się
+w [modelu zagrożeń v1](threat-model-v1.md).
 
 ## 4. Model a obecny kod
 
@@ -214,7 +213,6 @@ Podstawa: [karta projektu](../../README.md),
 [konfiguracja adresu](../../mobile/src/config.ts),
 [ekran WebView](../../mobile/src/screens/TractorScreen.tsx),
 [dokument mapy](../../mobile/src/map/mapHtml.ts).
-Notatka o dotychczasowych sprawdzeniach: [weryfikacja](../verification.md).
 Układ DFD odpowiada pięciu elementom omawianym w dostarczonej prezentacji
 „BAiSM - Zajęcia 2: Modelowanie zagrożeń i architektura” (strony PDF 3-5 i 11-12).
 Bezpośrednia komunikacja z API uwzględnia ustalenie projektowe z rozmowy

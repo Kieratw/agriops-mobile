@@ -105,6 +105,9 @@ Szczegółowy [diagram przepływu danych (DFD)](docs/threat-model/README.md)
 pokazuje granice zaufania i bezpośrednią komunikację z API AgriOps. Zawiera
 edytowalne źródło Mermaid oraz eksporty PNG i SVG.
 
+[Model zagrożeń v1](docs/threat-model/threat-model-v1.md) zawiera 12 scenariuszy
+STRIDE, ocenę ryzyka, decyzje, wymagania i plan weryfikacji.
+
 ```mermaid
 flowchart LR
     App["Aplikacja Android"] -->|HTTPS| API["API AgriOps"]
