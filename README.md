@@ -41,7 +41,7 @@ Terminal otrzymuje własną sesję, którą właściciel może odwołać. Zakres
 | --- | --- | --- | --- | --- |
 | E-mail i identyfikator konta | Logowanie | Backend; w aplikacji tylko potrzebne dane sesji | Poufne | Pozwalają powiązać dane z użytkownikiem. |
 | Tokeny sesji | Backend mobilny | Chroniony magazyn systemowy telefonu lub tabletu; backend obsługuje ważność i odwołanie sesji | Poufne | Umożliwiają dostęp do konta lub terminala. |
-| Jednorazowy kod parowania QR | Właściciel i backend mobilny | Backend i chwilowo urządzenia podczas parowania | Poufne | Pozwala przypisać terminal do gospodarstwa; musi wygasać i być jednorazowy. |
+| Kod QR i sekret próby parowania | Terminal i backend mobilny | Backend oraz chwilowo urządzenia podczas parowania; sekret pozostaje na terminalu i nie trafia do QR | Poufne | Kod wskazuje próbę parowania, a osobny sekret pozwala terminalowi odebrać zatwierdzoną sesję. |
 | Pola, uprawy i przypisanie próbek | AgriOps i formularze aplikacji | AgriOps; na urządzeniu tylko dane potrzebne do pracy | Wewnętrzne | Opisują gospodarstwo i jego działalność. |
 | Zlecenia i raporty prac | Właściciel i terminal | Backend; lokalnie szkic niezakończonej pracy | Wewnętrzne | Zawierają terminy, maszyny i historię wykonania. |
 | Zdjęcia i dokładna lokalizacja | Kamera, galeria, GPS lub punkt wskazany na mapie | AgriOps; czasowo prywatna pamięć aplikacji przed wysłaniem | Szczególnie wrażliwe | Mogą ujawnić miejsce pobytu, otoczenie i przebieg pracy. |
@@ -55,11 +55,11 @@ W tabeli opisano zakres docelowy do MVP. Obecny stan implementacji znajduje się
 
 | Wymagana funkcja | Realizacja w aplikacji | Termin |
 | --- | --- | --- |
-| Logowanie z tokenami i co najmniej dwie role | Sesja właściciela oraz osobna sesja terminala ciągnika. Jednorazowy QR zatwierdzany przez właściciela służy do parowania urządzenia. Kontrola ról, gospodarstwa i przydzielonych zadań po stronie backendu. | Z3–Z5 |
+| Logowanie z tokenami i co najmniej dwie role | Sesja właściciela oraz osobna sesja terminala ciągnika. Terminal wyświetla jednorazowy QR; właściciel otwiera zweryfikowany link i zatwierdza parowanie. Kontrola ról, gospodarstwa i przydzielonych zadań po stronie backendu. | Z3–Z5 |
 | Własny backend/API | Backend mobilny ASP.NET Core obsługujący sesje terminali i komunikację z prywatnym API AgriOps. | Z3–Z5 |
 | Lokalne przechowywanie danych wrażliwych | Token sesji w magazynie systemowym przez expo-secure-store; usunięcie przy wylogowaniu. Ochrona lokalnego szkicu raportu i próbki. | Z4 |
 | Co najmniej trzy uprawnienia systemowe | Kamera do zdjęć i QR, lokalizacja do oznaczania punktów, powiadomienia do przypomnienia o dokończeniu szkicu próbki. Pokaz na Androidzie 13 lub nowszym; obsługa odmowy każdej zgody. | Z4–Z5 |
-| Deep link | Link `agriops://fields/<fieldId>` otwiera pole dopiero po sprawdzeniu sesji i dostępu do wskazanego gospodarstwa. | Z5 |
+| Deep link | Zweryfikowane Android App Links oparte na HTTPS otwierają potwierdzenie parowania QR lub szczegóły pola. Aplikacja sprawdza domenę, ścieżkę i parametry, a backend sprawdza sesję oraz uprawnienia. | Z5 |
 | WebView lub treści zewnętrzne | Mapa Leaflet w WebView z publicznym podkładem Geoportalu. Ograniczone źródła i nawigacja; bez przekazywania sesji API do strony. | Z2, sprawdzenie zabezpieczeń do Z5 |
 | Biometria jako opcja odblokowania | Opcjonalne odblokowanie istniejącej sesji mechanizmem Androida; obsługa urządzenia bez biometrii i ponownego logowania. | Z5 |
 
@@ -67,16 +67,27 @@ Galeria będzie dostępna przez systemowy Photo Picker, który udostępnia aplik
 
 ### Zabezpieczenie parowania QR
 
-Planowane zasady:
+Parowanie jest planowane na kolejny etap. Docelowy przebieg:
 
-- Backend generuje losowy kod parowania o co najmniej 128 bitach losowości. Kod wygasa po 60 sekundach; w QR nie umieszczamy hasła ani tokenu sesji.
-- Kod jest powiązany na serwerze z właścicielem i gospodarstwem. Pierwsze użycie atomowo przypisuje go do jednej próby parowania terminala; kolejne użycia są odrzucane.
-- Zalogowany właściciel widzi docelowy ciągnik i porównuje kod potwierdzenia z wyświetlonym na terminalu. Dopiero jego zatwierdzenie pozwala wydać sesję.
-- Próba parowania jest związana z osobnym sekretem terminala, wymaganym do odebrania sesji. Samo posiadanie zdjęcia QR nie wystarcza do odebrania tokenu zatwierdzonego dla innego urządzenia.
-- Aplikacja akceptuje tylko ustalony format QR. Skanowanie nie otwiera dowolnych adresów; komunikacja odbywa się przez HTTPS z zaufanym backendem, który sam ustala rolę i zakres dostępu.
-- Endpointy parowania mają limity prób. Kodów, sekretów parowania i tokenów nie zapisujemy w logach. Właściciel może odwołać sesję każdego terminala.
+1. Tablet w ciągniku rozpoczyna próbę parowania. Backend generuje kryptograficznie losowy kod o co najmniej 128 bitach losowości oraz osobny sekret tej próby. Tablet wyświetla QR z linkiem HTTPS; sekret pozostaje na tablecie. QR nie zawiera hasła ani tokenu sesji.
+2. Właściciel skanuje QR telefonem. Zweryfikowany Android App Link otwiera w aplikacji ekran potwierdzenia. Jeśli właściciel nie jest zalogowany, najpierw przechodzi logowanie. Samo otwarcie linku i pobranie podglądu nie zatwierdza ani nie zużywa kodu.
+3. Właściciel wybiera gospodarstwo i ciągnik, porównuje kod potwierdzenia z widocznym na tablecie i zatwierdza operację. Backend sprawdza jego dostęp do gospodarstwa i maszyny, a następnie wiąże próbę z zatwierdzonym przypisaniem. Tego przypisania nie można nadpisać kolejnym żądaniem; zmiana wymaga anulowania próby i nowego kodu. Rola i zakres sesji wynikają z danych serwera.
+4. Tablet pokazuje wybrane gospodarstwo i ciągnik. Osoba przy tablecie potwierdza przypisanie, a tablet przedstawia swój sekret przy odbiorze sesji. Posiadanie samego zdjęcia QR nie wystarcza do odebrania sesji ani zakończenia parowania zdalnie.
+5. Backend atomowo kończy próbę parowania i wydaje sesję tylko temu terminalowi. Ponowne użycie lub równoległa próba odbioru nie może utworzyć drugiej sesji. Właściciel może później odwołać dostęp terminala.
 
-Sprawdzimy kod wygasły, zmieniony, użyty ponownie i dotyczący obcego gospodarstwa, dwie równoczesne próby użycia oraz brak potwierdzenia właściciela. Oddzielnie sprawdzimy, czy odwołana sesja terminala traci dostęp. Punktem odniesienia są zasady [OWASP dotyczące sesji](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html) i potwierdzania urządzeń w [RFC 8628](https://www.rfc-editor.org/rfc/rfc8628.html); dokładny przepływ zostanie opisany przed implementacją backendu mobilnego.
+Kod wygasa po 60 sekundach, liczonych przez backend. Zatwierdzenia dotyczą jednej próby parowania i nie przenoszą się na nowy kod. Backend przechowuje skróty kodu i sekretu próby, a terminal usuwa swój sekret po zakończeniu lub wygaśnięciu parowania. Endpointy tworzenia, zatwierdzania i odpytywania prób mają limity żądań. Kodów, sekretów i tokenów nie zapisujemy w logach; komunikacja odbywa się przez HTTPS.
+
+Powiązanie aplikacji z domeną zostanie skonfigurowane przez Android App Links: wpis w aplikacji i plik `assetlinks.json` na serwerze z odciskiem certyfikatu podpisującego aplikację. Wersja publikowana użyje certyfikatu wydania. Aplikacja przyjmie wyłącznie ustaloną domenę i ścieżki; dane ze skanu nie zmieniają adresu backendu ani nie uruchamiają przekierowania pod dowolny adres.
+
+Sprawdzimy:
+
+- kod wygasły, zmieniony, użyty ponownie i dwa równoczesne odbiory sesji;
+- brak zalogowanego właściciela, brak któregoś potwierdzenia i brak sekretu terminala;
+- próbę przypisania ciągnika z cudzego gospodarstwa i zmianę identyfikatorów w żądaniu;
+- QR z obcą domeną, inną ścieżką lub dodatkowymi parametrami oraz błędne powiązanie domeny z aplikacją;
+- odwołanie sesji terminala i odmowę dalszego dostępu do danych.
+
+Podstawy rozwiązania: [Android App Links](https://developer.android.com/training/app-links/about), [OWASP — zarządzanie sesją](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html) i autoryzacja urządzeń w [RFC 8628](https://www.rfc-editor.org/rfc/rfc8628.html). Dokumenty te są punktem odniesienia przy projektowaniu własnego przepływu parowania.
 
 ## 5. Architektura
 
@@ -119,7 +130,7 @@ Obecny szkielet korzysta bezpośrednio z istniejącego API AgriOps i jego sesji 
 | Z2 | Repozytorium z dostępem prowadzącego, karta projektu w README, budujący i uruchamiający się szkielet oraz szkic architektury. Właściciel ma formularz logowania i listę pól z API, terminal ma mapę. |
 | Z3 | Podstawowy backend mobilny, sesje i role. Pierwsze zlecenie uprawy gleby utworzone przez właściciela i widoczne dla przypisanego ciągnika. Wstępny diagram przepływu danych i lista zagrożeń. |
 | Z4 | Zdjęcie z kamery lub galerii, lokalizacja i punkt próbki zapisują się przez API. Terminal rejestruje rozpoczęcie, zakończenie i raport pracy. Chroniony magazyn sesji oraz zachowanie szkicu po restarcie i utracie połączenia. |
-| Z5 — MVP | Pełny scenariusz zlecenie → wykonanie → zatwierdzenie. Działają pozycje umowy: tokeny, role, QR, trzy uprawnienia, deep link, WebView i opcjonalne odblokowanie biometrią. Model zagrożeń v1. |
+| Z5 — MVP | Pełny scenariusz zlecenie → wykonanie → zatwierdzenie. Działają pozycje umowy: tokeny, role, QR ze zweryfikowanym App Linkiem i potwierdzeniami, trzy uprawnienia, linki do pól, WebView i opcjonalne odblokowanie biometrią. Model zagrożeń v1. |
 
 Przy braku internetu MVP zachowuje lokalny szkic i umożliwia jego ręczne wysłanie po odzyskaniu połączenia, z ochroną przed powtórnym zapisem. Mapy offline, ciągłe śledzenie maszyny, automatyczne propozycje zabiegów i integracja z ESP32 pozostają poza MVP.
 
@@ -146,11 +157,11 @@ Wyniki będą zbierane jako dowody do checklisty MASVS. Analiza APK i modyfikacj
 
 ### Aktualizacje względem pierwotnej karty
 
-Rola pracownika została zastąpiona terminalem przypisanym do ciągnika. Zachowano wybór zdjęć z galerii, a trzecim uprawnieniem wymagającym zgody są powiadomienia. WebView służy do mapy, a deep link otwiera szczegóły pola. Kartę w tej wersji należy przedstawić prowadzącemu; jego akceptacja nie jest jeszcze odnotowana.
+Rola pracownika została zastąpiona terminalem przypisanym do ciągnika. Zachowano wybór zdjęć z galerii, a trzecim uprawnieniem wymagającym zgody są powiadomienia. WebView służy do mapy. Zweryfikowane App Links obsłużą parowanie QR i szczegóły pola. Kartę w tej wersji należy przedstawić prowadzącemu; jego akceptacja nie jest jeszcze odnotowana.
 
 ## Stan aplikacji
 
-Szkielet zawiera wybór trybu, formularz logowania do istniejącego AgriOps, wybór gospodarstwa, pobranie listy pól i mapę Geoportalu. Pełne role, backend mobilny, tokeny terminali, QR, kamera i galeria, próbki oraz zlecenia nie są jeszcze zaimplementowane.
+Szkielet zawiera wybór trybu, formularz logowania do istniejącego AgriOps, wybór gospodarstwa, pobranie listy pól i mapę Geoportalu. Pełne role, backend mobilny, tokeny terminali, parowanie QR, weryfikacja App Links, kamera i galeria, próbki oraz zlecenia nie są jeszcze zaimplementowane.
 
 Szkielet został zbudowany i uruchomiony na emulatorze. Sprawdzono ekran wyboru, formularz i mapę. Logowanie prawdziwym kontem oraz odczyt prywatnych gospodarstw i pól wymagają jeszcze sprawdzenia na urządzeniu.
 
