@@ -72,6 +72,8 @@ Galeria będzie dostępna przez systemowy Photo Picker, który udostępnia aplik
 3. Właściciel porównuje numer z wyświetlonym w webie i klika **Zatwierdź urządzenie**. Telefon odbiera sesję, zapisuje ją w Android Keystore przez Expo SecureStore i wyświetla zaplanowane operacje przypisane do ciągnika.
 4. **Odłącz terminal** na karcie ciągnika odbiera dostęp przy kolejnym żądaniu telefonu. Zatwierdzenie nowego terminala również kończy poprzednie aktywne przypisanie typu Terminal.
 
+Jeśli po skanie link otworzy się w przeglądarce, skopiuj pełny adres z paska przeglądarki. W AgriOps Mobile wybierz **Ciągnik**, wklej go w pole **Link parowania** i wybierz **Otwórz link parowania**. Właściciel nadal zatwierdza urządzenie w webie.
+
 Backend przechowuje skróty kodu, sekretu próby i tokenu sesji. Kod QR jest we fragmencie linku HTTPS, który nie trafia do żądania strony. Weryfikacja sesji odbywa się przy każdym pobraniu zleceń.
 
 Przed odbiorem na telefonie zastosuj migrację `AddTerminalPairings` i zbuduj nową aplikację Android. Ustaw ten sam adres HTTPS w `EXPO_PUBLIC_APP_ORIGIN` (Android) i `TERMINAL_APP_ORIGIN` (web, domyślnie `https://agriops.pl`). `EXPO_PUBLIC_API_URL` musi wskazywać API HTTPS tego samego środowiska. Na domenie web ustaw `TERMINAL_ANDROID_CERT_FINGERPRINTS` na odcisk SHA-256 certyfikatu podpisującego instalowany APK, z dwukropkami między bajtami. Kilka odcisków oddziel przecinkami. Web opublikuje deklarację pod `/.well-known/assetlinks.json`. Dla wydania z Google Play użyj certyfikatu podpisywania aplikacji z Play Console.

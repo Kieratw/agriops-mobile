@@ -65,7 +65,7 @@ export default function App() {
         </View>
         {screen === 'home' && <HomeScreen onOwner={() => setScreen('owner')} onTractor={() => setScreen('tractor')} />}
         {screen === 'owner' && <OwnerScreen />}
-        {screen === 'tractor' && <TerminalScreen key={pairingCode ?? 'saved'} code={pairingCode} />}
+        {screen === 'tractor' && <TerminalScreen key={pairingCode ?? 'saved'} code={pairingCode} onPairingCode={setPairingCode} />}
       </SafeAreaView>
     </SafeAreaProvider>
   );
