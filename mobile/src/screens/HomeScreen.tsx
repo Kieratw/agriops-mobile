@@ -8,7 +8,7 @@ export function HomeScreen({ onOwner, onTractor }: Props) {
     <ScrollView contentContainerStyle={[layout.content, styles.content]}>
       <Text style={styles.heading}>Wybierz tryb</Text>
       <Mode title="Właściciel" subtitle="Pola gospodarstwa" onPress={onOwner} />
-      <Mode title="Ciągnik" subtitle="Mapa terenu" onPress={onTractor} />
+      <Mode title="Ciągnik" subtitle="Terminal i zaplanowane zlecenia" onPress={onTractor} />
     </ScrollView>
   );
 }
