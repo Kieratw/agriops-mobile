@@ -1,13 +1,23 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { config } from '../mobile/src/config.ts';
-import { fetchTerminalDashboard, pairingCodeFromUrl, redeemPairing } from '../mobile/src/services/terminalApi.ts';
+import {
+  fetchTerminalDashboard,
+  fieldDeepLinkFromUrl,
+  pairingCodeFromInput,
+  pairingCodeFromUrl,
+  redeemPairing,
+} from '../mobile/src/services/terminalApi.ts';
 
 const code = 'a'.repeat(43);
+const fieldId = '22222222-2222-2222-2222-222222222222';
 
-test('Android accepts the expected HTTPS pairing link and its fragment only', () => {
+test('Android accepts the expected HTTPS pairing link, raw code input, and verified field deep links', () => {
   const origin = new URL(config.appOrigin).origin;
   assert.equal(pairingCodeFromUrl(`${origin}/terminal/pair#${code}`), code);
+  assert.equal(pairingCodeFromInput(` ${origin}/terminal/pair#${code} `), code);
+  assert.equal(pairingCodeFromInput(` #${code} `), code);
+  assert.equal(pairingCodeFromInput(code), code);
   for (const url of [
     `http://${new URL(origin).host}/terminal/pair#${code}`,
     `https://outside.example/terminal/pair#${code}`,
@@ -16,6 +26,11 @@ test('Android accepts the expected HTTPS pairing link and its fragment only', ()
     `${origin}/terminal/pair?redirect=elsewhere#${code}`,
     `${origin}/terminal/pair#short`,
   ]) assert.equal(pairingCodeFromUrl(url), null);
+
+  assert.equal(fieldDeepLinkFromUrl(`${origin}/fields/${fieldId}`), fieldId);
+  assert.equal(fieldDeepLinkFromUrl(`${origin}/fields/${fieldId}?extra=1`), null);
+  assert.equal(fieldDeepLinkFromUrl(`https://outside.example/fields/${fieldId}`), null);
+  assert.equal(fieldDeepLinkFromUrl(`${origin}/fields/not-a-uuid`), null);
 });
 
 test('phone polls the terminal API without cookies and sends a session token only to the dashboard', async t => {

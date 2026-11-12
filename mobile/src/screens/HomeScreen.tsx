@@ -1,4 +1,5 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { FieldsMap } from '../map/FieldsMap';
 import { colors, layout } from '../theme';
 
 type Props = { onOwner: () => void; onTractor: () => void };
@@ -6,6 +7,7 @@ type Props = { onOwner: () => void; onTractor: () => void };
 export function HomeScreen({ onOwner, onTractor }: Props) {
   return (
     <ScrollView contentContainerStyle={[layout.content, styles.content]}>
+      <FieldsMap />
       <Text style={styles.heading}>Wybierz tryb</Text>
       <Mode title="Właściciel" subtitle="Pola gospodarstwa" onPress={onOwner} />
       <Mode title="Ciągnik" subtitle="Terminal i zaplanowane zlecenia" onPress={onTractor} />
@@ -30,8 +32,8 @@ function Mode({ title, subtitle, onPress }: { title: string; subtitle: string; o
 }
 
 const styles = StyleSheet.create({
-  content: { paddingTop: 40 },
-  heading: { color: colors.muted, fontSize: 16, marginBottom: 20 },
+  content: { paddingTop: 16 },
+  heading: { color: colors.muted, fontSize: 16, marginTop: 12 },
   mode: { paddingVertical: 28 },
   modeTitle: { color: colors.text, fontWeight: '700', fontSize: 26 },
 });

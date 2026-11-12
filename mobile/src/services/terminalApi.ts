@@ -1,9 +1,12 @@
 import { config } from '../config.ts';
 
 export type PairingPreview = { farmName: string; machineName: string; expiresAt: string };
-type TerminalJob = { id: string; type: string; date: string; startTime: string | null; isAllDay: boolean };
+export type TerminalJob = { id: string; type: string; date: string; startTime: string | null; isAllDay: boolean };
 export type TerminalDashboard = { farmName: string; machineName: string; jobs: TerminalJob[] };
 export type TerminalClaim = { code: string; secret: string };
+
+const pairingCodePattern = /^[A-Za-z0-9_-]{43}$/;
+const fieldGuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export class TerminalApiError extends Error {
   readonly status: number;
@@ -19,11 +22,35 @@ export class TerminalApiError extends Error {
 export function pairingCodeFromUrl(url: string | null): string | null {
   if (!url) return null;
   try {
-    const link = new URL(url);
+    const link = new URL(url.trim());
     const expected = new URL(config.appOrigin);
     const code = link.hash.slice(1);
     return link.protocol === 'https:' && link.origin === expected.origin && link.pathname === '/terminal/pair'
-      && !link.username && !link.password && !link.search && /^[A-Za-z0-9_-]{43}$/.test(code) ? code : null;
+      && !link.username && !link.password && !link.search && pairingCodePattern.test(code) ? code : null;
+  } catch {
+    return null;
+  }
+}
+
+export function pairingCodeFromInput(input: string | null): string | null {
+  if (!input) return null;
+  const trimmed = input.trim();
+  const withoutHash = trimmed.startsWith('#') ? trimmed.slice(1) : trimmed;
+  if (pairingCodePattern.test(withoutHash)) return withoutHash;
+  return pairingCodeFromUrl(trimmed);
+}
+
+export function fieldDeepLinkFromUrl(url: string | null): string | null {
+  if (!url) return null;
+  try {
+    const link = new URL(url.trim());
+    const expected = new URL(config.appOrigin);
+    const match = /^\/fields\/([0-9a-fA-F-]{36})$/.exec(link.pathname);
+    if (!match || !fieldGuidPattern.test(match[1])) return null;
+    return link.protocol === 'https:' && link.origin === expected.origin
+      && !link.username && !link.password && !link.search && !link.hash
+      ? match[1].toLowerCase()
+      : null;
   } catch {
     return null;
   }

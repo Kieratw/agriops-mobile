@@ -5,7 +5,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { OwnerScreen } from './src/screens/OwnerScreen';
 import { TerminalScreen } from './src/screens/TerminalScreen';
-import { pairingCodeFromUrl } from './src/services/terminalApi';
+import { fieldDeepLinkFromUrl, pairingCodeFromUrl } from './src/services/terminalApi';
 import { colors } from './src/theme';
 
 type Screen = 'home' | 'owner' | 'tractor';
@@ -13,15 +13,25 @@ type Screen = 'home' | 'owner' | 'tractor';
 export default function App() {
   const [screen, setScreen] = useState<Screen>('home');
   const [pairingCode, setPairingCode] = useState<string | null>(null);
+  const [deepLinkFieldId, setDeepLinkFieldId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     let receivedLink = false;
     function openLink(url: string | null | undefined) {
-      const code = pairingCodeFromUrl(url ?? null);
-      if (active && code) {
+      if (!active || !url) return;
+      const code = pairingCodeFromUrl(url);
+      if (code) {
         setPairingCode(code);
+        setDeepLinkFieldId(null);
         setScreen('tractor');
+        return;
+      }
+      const fieldId = fieldDeepLinkFromUrl(url);
+      if (fieldId) {
+        setDeepLinkFieldId(fieldId);
+        setPairingCode(null);
+        setScreen('owner');
       }
     }
     const subscription = Linking.addEventListener('url', ({ url }) => {
@@ -34,6 +44,7 @@ export default function App() {
 
   function goHome() {
     setPairingCode(null);
+    setDeepLinkFieldId(null);
     setScreen('home');
   }
 
@@ -64,7 +75,7 @@ export default function App() {
           )}
         </View>
         {screen === 'home' && <HomeScreen onOwner={() => setScreen('owner')} onTractor={() => setScreen('tractor')} />}
-        {screen === 'owner' && <OwnerScreen />}
+        {screen === 'owner' && <OwnerScreen deepLinkFieldId={deepLinkFieldId} />}
         {screen === 'tractor' && <TerminalScreen key={pairingCode ?? 'saved'} code={pairingCode} />}
       </SafeAreaView>
     </SafeAreaProvider>
