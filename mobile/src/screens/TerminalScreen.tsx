@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { getRandomBytesAsync } from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
-import { Button, ErrorMessage, TextButton } from '../components/ui';
+import { Button, ErrorMessage, Input, TextButton } from '../components/ui';
 import {
-  claimPairing, fetchTerminalDashboard, previewPairing, redeemPairing, TerminalApiError,
+  claimPairing, fetchTerminalDashboard, pairingCodeFromUrl, previewPairing, redeemPairing, TerminalApiError,
   type PairingPreview, type TerminalClaim, type TerminalDashboard,
 } from '../services/terminalApi';
 import { colors, layout } from '../theme';
@@ -26,13 +26,14 @@ function saveTerminal(value: StoredTerminal) {
   return SecureStore.setItemAsync(storageKey, JSON.stringify(value));
 }
 
-export function TerminalScreen({ code }: { code: string | null }) {
+export function TerminalScreen({ code, onPairingCode }: { code: string | null; onPairingCode: (value: string) => void }) {
   const [stored, setStored] = useState<StoredTerminal | null>(null);
   const [preview, setPreview] = useState<PairingPreview | null>(null);
   const [dashboard, setDashboard] = useState<TerminalDashboard | null>(null);
   const [ignoreLink, setIgnoreLink] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [pairingLink, setPairingLink] = useState('');
   const [attempt, setAttempt] = useState(0);
   const [loaded, setLoaded] = useState(false);
   const screenLifetime = useRef<AbortController | null>(null);
@@ -223,7 +224,20 @@ export function TerminalScreen({ code }: { code: string | null }) {
         </>
       )}
       {loaded && !details && !activeToken && (
-        <Text style={layout.detail}>Na karcie ciągnika w AgriOps wybierz „Sparuj terminal”. Zeskanuj kod aparatem telefonu.</Text>
+        <>
+          <Text style={layout.detail}>Na karcie ciągnika wybierz „Sparuj terminal” i zeskanuj kod aparatem. Jeśli link otworzy się w przeglądarce, skopiuj go z paska adresu i wklej tutaj.</Text>
+          <Input label="Link parowania" value={pairingLink} onChangeText={setPairingLink}
+            autoCapitalize="none" autoCorrect={false} keyboardType="url" />
+          <TextButton title="Otwórz link parowania" disabled={!pairingLink.trim()} onPress={() => {
+            const parsed = pairingCodeFromUrl(pairingLink.trim());
+            if (!parsed || parsed === code) {
+              setError(parsed ? 'Poproś właściciela o nowy kod QR.' : 'Wklej pełny link parowania z domeny AgriOps.');
+              return;
+            }
+            setPairingLink('');
+            onPairingCode(parsed);
+          }} />
+        </>
       )}
       <ErrorMessage message={error} />
       {error && !details && !dashboard && !ignoreLink && (

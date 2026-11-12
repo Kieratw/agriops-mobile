@@ -8,6 +8,8 @@ const code = 'a'.repeat(43);
 test('Android accepts the expected HTTPS pairing link and its fragment only', () => {
   const origin = new URL(config.appOrigin).origin;
   assert.equal(pairingCodeFromUrl(`${origin}/terminal/pair#${code}`), code);
+  assert.equal(pairingCodeFromUrl(` ${origin}/terminal/pair#${code}\n`), code);
+  assert.equal(pairingCodeFromUrl(code), null);
   for (const url of [
     `http://${new URL(origin).host}/terminal/pair#${code}`,
     `https://outside.example/terminal/pair#${code}`,
