@@ -33,7 +33,7 @@ Do obserwacji pola można będzie zrobić nowe zdjęcie kamerą albo wybrać ist
 | Właściciel | Przeglądać dane swoich gospodarstw, planować zlecenia, parować i odłączać terminale, przeglądać zdjęcia i próbki oraz zatwierdzać raporty prac. | Odczytywać ani zmieniać danych cudzych gospodarstw. |
 | Terminal ciągnika | Po sparowaniu odczytywać przydzielone pola i zadania, rejestrować przebieg pracy oraz dodawać zdjęcia, lokalizacje i punkty próbek w dozwolonym zakresie. | Zarządzać dostępem, tworzyć i edytować pól, zatwierdzać własnych raportów ani pobierać danych innych gospodarstw lub nieprzydzielonych zadań. |
 
-Terminal otrzymuje własną sesję, którą właściciel może odwołać. Zakres dostępu sprawdza serwer przy każdym żądaniu. Parowanie odbywa się na karcie ciągnika w webie.
+Terminal otrzymuje własną sesję, którą właściciel może odwołać. Zakres dostępu sprawdza serwer przy każdym żądaniu.
 
 ## 3. Dane i ich klasyfikacja
 
@@ -55,7 +55,7 @@ W tabeli opisano zakres docelowy do MVP. Obecny stan implementacji znajduje się
 
 | Wymagana funkcja | Realizacja w aplikacji | Termin |
 | --- | --- | --- |
-| Logowanie z tokenami i co najmniej dwie role | Sesja właściciela oraz osobna sesja terminala ciągnika. Właściciel wyświetla QR w webie i zatwierdza próbę zgłoszoną przez telefon. Kontrola ról, gospodarstwa i przydzielonych zadań po stronie backendu. | Z3–Z5 |
+| Logowanie z tokenami i co najmniej dwie role | Sesja właściciela oraz osobna sesja terminala ciągnika. Właściciel wyświetla jednorazowy QR w webie, telefon otwiera zweryfikowany link, a właściciel zatwierdza parowanie. Kontrola gospodarstwa i przydzielonych zadań po stronie backendu. | Z3–Z5 |
 | Własny backend/API | Własne API AgriOps w ASP.NET Core; rozszerzenie o sesje terminali, parowanie i funkcje mobilnego MVP. | Z3–Z5 |
 | Lokalne przechowywanie danych wrażliwych | Token sesji w magazynie systemowym przez expo-secure-store; usunięcie przy wylogowaniu. Ochrona lokalnego szkicu raportu i próbki. | Z4 |
 | Co najmniej trzy uprawnienia systemowe | Kamera do zdjęć i QR, lokalizacja do oznaczania punktów, powiadomienia do przypomnienia o dokończeniu szkicu próbki. Pokaz na Androidzie 13 lub nowszym; obsługa odmowy każdej zgody. | Z4–Z5 |
@@ -91,7 +91,7 @@ Podstawy rozwiązania: [Android App Links](https://developer.android.com/trainin
 | Komponent | Technologia | Odpowiedzialność i połączenia |
 | --- | --- | --- |
 | Aplikacja mobilna | React Native, TypeScript, Expo | Interfejs właściciela i terminala, kamera, wybór zdjęć z galerii, lokalizacja, lokalna sesja; bezpośrednie połączenie HTTPS z API AgriOps. |
-| Istniejące API AgriOps | ASP.NET Core | Dane gospodarstw, logowanie, sesje i reguły dostępu; komunikacja z bazą danych. Sesje terminali, parowanie i mobilne zlecenia są planowanym rozszerzeniem tego backendu. |
+| Istniejące API AgriOps | ASP.NET Core | Dane gospodarstw, logowanie, sesje i reguły dostępu, parowanie terminali oraz odczyt zaplanowanych operacji ciągnika. |
 | Baza danych | PostgreSQL / PostGIS | Dane gospodarstw, pól, lokalizacji i zapisów terenowych; dostęp przez backend. |
 | Mapa w WebView | Leaflet, Geoportal i CDN unpkg | Publiczny podkład mapowy i biblioteka mapy; niezależne od sesji API. |
 | ESP32 — rozszerzenie | Do ustalenia po MVP | Komunikacja z aplikacją przy pobieraniu próbek. |
@@ -115,7 +115,7 @@ flowchart LR
     App -.-> ESP["ESP32 — rozszerzenie"]
 ```
 
-Obecny szkielet korzysta bezpośrednio z istniejącego API AgriOps i jego sesji opartej na ciasteczkach. Ten sam backend zostanie rozszerzony o tokeny terminala, parowanie QR i pozostałe funkcje mobilne. Dane gospodarstw pozostają po stronie AgriOps, a dostęp do nich wymaga sprawdzenia gospodarstwa i uprawnień na serwerze.
+Tryb właściciela korzysta z sesji API opartej na ciasteczkach. Tryb terminala używa osobnego poświadczenia wydawanego przez to samo API po parowaniu QR. Dane gospodarstw pozostają po stronie AgriOps, a dostęp do nich wymaga sprawdzenia gospodarstwa i uprawnień na serwerze.
 
 ## 6. Podział pracy w zespole
 
@@ -163,11 +163,31 @@ Rola pracownika została zastąpiona terminalem przypisanym do ciągnika. Zachow
 
 ## Stan aplikacji
 
-Szkielet zawiera wybór trybu, formularz logowania do istniejącego AgriOps, wybór gospodarstwa, pobranie listy pól i mapę Geoportalu. Pełne role, mobilne rozszerzenia API, tokeny terminali, parowanie QR, weryfikacja App Links, kamera i galeria, próbki oraz zlecenia nie są jeszcze zaimplementowane.
+Aplikacja realizuje pełny zakres MVP na zajęcia BAiSM (Z2–Z5):
 
-Szkielet został zbudowany i uruchomiony na emulatorze. Sprawdzono ekran wyboru, formularz i mapę. Logowanie prawdziwym kontem oraz odczyt prywatnych gospodarstw i pól wymagają jeszcze sprawdzenia na urządzeniu.
+- **Tryb właściciela (`OwnerScreen`)**: logowanie sesją cookie przez HTTPS z walidacją `Origin`, automatyczny lub ręczny wybór gospodarstwa, opcjonalna blokada i odblokowanie sesji biometrią Androida (`expo-secure-store` `requireAuthentication: true`), lista i interaktywna mapa pól na podkładzie ortofotomapy Geoportalu oraz obsługa zweryfikowanych linków `https://<appOrigin>/fields/<fieldId>`.
+- **Ręczne próbki gleby i mapa (`FieldSoilSamples`)**: wskazywanie punktów pobrania próbek bezpośrednio na mapie pola (z walidacją granic wielokąta oraz otworów z tolerancją 5 m, zgodną z backendem) lub z użyciem bieżącego GPS, wprowadzanie głębokości, typu gleby i wyników laboratoryjnych (pH, P₂O₅, K₂O, Mg), szyfrowany szkic lokalny w `SecureStore`, przypomnienie o dokończeniu szkicu (`POST_NOTIFICATIONS` na Androidzie 13+) oraz zapis badań i punktów próbek w API (`/api/farms/{farmId}/soil-tests`).
+- **Obserwacje fotograficzne pola (`FieldObservations`)**: wykonywanie zdjęć aparatem (`CAMERA`) lub wybór przez systemowy Photo Picker, rozróżnienie pozycji GPS od punktu wskazanego ręcznie na mapie pola, szyfrowany szkic obserwacji w `SecureStore`, natychmiastowe czyszczenie tymczasowego pliku z `cacheDir` po wysyłce oraz bezpieczny podgląd zdjęć z historii obserwacji bezpośrednio w pamięci RAM (`data:` URI bez zapisu na dysk).
+- **Dokumentacja i zlecenia uprawy gleby (`FieldDocumentation`)**: odczyt historii zabiegów i dokumentacji pola (`/api/farms/{farmId}/documentation`), planowanie zleceń uprawy gleby (`SOIL_CULTIVATION`) z wyborem terminu, ciągnika i narzędzia uprawowego, zatwierdzanie wykonanych prac oraz generowanie i zatwierdzanie kodów parowania QR dla terminala ciągnika bezpośrednio z poziomu telefonu właściciela.
+- **Tryb terminala ciągnika (`TerminalScreen`)**: parowanie przez zweryfikowany Android App Link (`/terminal/pair#<kod>`), odczyt QR ze zdjęcia zrobionego aparatem (`CAMERA`) lub wybranego z galerii — to nie jest skaner na żywo; dekodowanie w odizolowanym WebView przez `BarcodeDetector` / `jsQR` (skrypt z unpkg z kontrolą integralności SRI i ograniczoną nawigacją WebView) oraz ręczne wklejenie kodu, przechowywanie tokenu terminala w `SecureStore` (`WHEN_UNLOCKED_THIS_DEVICE_ONLY`), podgląd przydzielonych zadań z mapą GPS oraz lokalna rejestracja rozpoczęcia, zakończenia i raportu pracy ciągnika (raport pozostaje na urządzeniu — patrz „Znane ograniczenia”).
 
-Repozytorium jest publiczne. Na Z2 należy przekazać jego adres prowadzącemu i zapoznać się z [wprowadzeniem do OWASP MASVS](https://mas.owasp.org/MASVS/).
+### Znane ograniczenia MVP
 
+- **Raport terminala nie jest wysyłany do AgriOps.** Backend nie udostępnia endpointu, którym sesja terminala zgłasza start, koniec i raport pracy, więc zatwierdzenie właściciela (`approveOperation`) zmienia tylko status zabiegu na `COMPLETED`, bez raportu.
+- **Blokada biometryczna zamyka tylko ekran aplikacji.** Ciasteczko sesji nie jest chronione kluczem biometrycznym; pełne zamknięcie sesji zapewnia wylogowanie.
+- **Przypomnienie o szkicu próbki** to lokalne powiadomienie (`expo-notifications`) planowane godzinę po zapisaniu szkicu; jest anulowane po wysłaniu lub usunięciu szkicu. Wymaga przebudowy klienta deweloperskiego.
+- Zgodność z kontraktem API sprawdzono na adresach i metodach endpointów; testy jednostkowe używają atrap odpowiedzi, a test na prawdziwym koncie i urządzeniu pozostaje do wykonania.
+
+Dokumentacja bezpieczeństwa i artefakty kursowe:
+
+- [Diagram przepływu danych (DFD)](docs/threat-model/README.md) i [Model zagrożeń v1](docs/threat-model/threat-model-v1.md)
+- [Arkusz Z2 — Modelowanie zagrożeń](docs/arkusze/Z2-modelowanie-zagrozen.md)
+- [Arkusz Z3 — Tabela uprawnień i analiza manifestu](docs/arkusze/Z3-uprawnienia.md)
+- Dokumentacja Z4 (`docs/storage/`):
+  - [Inwentaryzacja danych lokalnych](docs/storage/inwentaryzacja.md)
+  - [Raport PRZED](docs/storage/raport-przed.md)
+  - [Decyzje architektoniczne i kryptograficzne](docs/storage/decyzje.md)
+  - [Analiza kanałów wycieków pobocznych](docs/storage/kanaly-wyciekow.md)
+  - [Polityka sesji i cyklu życia tokenów](docs/storage/polityka-sesji.md)
 
 Materiały: [OWASP MASVS](https://mas.owasp.org/MASVS/). Mapa: Leaflet 1.9.4 i podkład GUGiK / Geoportal.gov.pl.

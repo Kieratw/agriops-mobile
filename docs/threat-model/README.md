@@ -93,8 +93,7 @@ flowchart LR
 | Pliki i diagnostyka | Zdjęcia wymagają kontroli dostępu przy zapisie i odczycie. Hasła, tokeny, kody i sekrety parowania nie trafiają do logów. |
 
 Tabela określa wymagania modelu; nie jest potwierdzeniem gotowości nowych
-funkcji ani wynikiem audytu. Zakres istniejących mechanizmów opisuje
-[przegląd backendu i bazy](../../../agriops-docs/docs/security/backend-database-security-review.md).
+funkcji ani wynikiem audytu. Kontrole backendu wymagają osobnej weryfikacji.
 
 ## 2. Wnętrze urządzenia i usługi zewnętrzne
 
@@ -155,7 +154,7 @@ flowchart LR
 | F11 | Planowany zweryfikowany Android App Link: potwierdzenie parowania albo szczegóły pola. Parametry są niezaufane. Otwarcie linku nie zatwierdza parowania i nie nadaje dostępu do pola. |
 | F12-F13 | Planowany token właściciela albo terminala, chroniony przez magazyn systemowy. Usunięcie lokalnego tokenu i odwołanie sesji na serwerze są osobnymi operacjami. Hasło nie trafia do D1. |
 | F14-F15 | Planowany szkic raportu/próbki i plik przed wysłaniem. Zawiera dane wrażliwe; prywatny katalog sam nie przesądza o szyfrowaniu ani ochronie kopii zapasowych. Mechanizm ochrony i usuwania wymaga implementacji. |
-| F16 | Dokument mapy i jej widok. Sesja API i sekret parowania nie są przekazywane do WebView. |
+| F16 | Dokument mapy i jej widok; w widoku właściciela także nazwy i zwalidowane granice pól dostępnego gospodarstwa. Sesja API i sekret parowania nie są przekazywane do WebView. |
 | F17-F18 | Publiczne kafle mapy; ich identyfikatory ujawniają dostawcy oglądany obszar oraz adres sieciowy klienta. To oddzielny ruch od połączenia z API AgriOps. |
 | F19-F20 | Leaflet JS/CSS z CDN. Pobrany kod wykonuje się w kontekście WebView, dlatego źródło kodu jest istotną granicą zaufania. |
 
@@ -203,7 +202,7 @@ w [modelu zagrożeń v1](threat-model-v1.md).
 | Element | Stan w szkielecie |
 | --- | --- |
 | P1 i połączenie API | Formularz logowania, wybór gospodarstwa i lista pól. `AgriOpsApi` używa `credentials: 'include'` i łączy się bezpośrednio z istniejącym API. Docelowy mobilny kontrakt tokenów wymaga zaprojektowania. |
-| P2, E4 i E5 | Mapa Leaflet w WebView, kafle Geoportalu i zasoby unpkg. WebView ma wyłączone współdzielenie cookies i nie otrzymuje sesji API. |
+| P2, E4 i E5 | Mapa Leaflet w WebView, kafle Geoportalu i zasoby unpkg. Mapa właściciela pokazuje granice pól i dopasowuje do nich widok. WebView ma wyłączone współdzielenie cookies i nie otrzymuje sesji API. |
 | P3 i D3 | Istniejący backend i baza AgriOps. Sesje terminali, parowanie i mobilne zlecenia/raporty wymagają rozszerzenia tego backendu. |
 | D1, D2 i funkcje terenowe | Planowane; obecna aplikacja nie implementuje SecureStore, trwałych szkiców, parowania ani ról terminala. |
 | D4 | Istniejące prywatne przechowywanie plików AgriOps; mobilne przesyłanie zdjęć i jego zakres dostępu wymagają implementacji i weryfikacji. |
@@ -211,7 +210,8 @@ w [modelu zagrożeń v1](threat-model-v1.md).
 Podstawa: [karta projektu](../../README.md),
 [klient API](../../mobile/src/services/agriOpsApi.ts),
 [konfiguracja adresu](../../mobile/src/config.ts),
-[ekran WebView](../../mobile/src/screens/TractorScreen.tsx),
+[ekran WebView](../../mobile/src/screens/TerminalScreen.tsx),
+[mapa pól właściciela](../../mobile/src/map/FieldsMap.tsx),
 [dokument mapy](../../mobile/src/map/mapHtml.ts).
 Układ DFD odpowiada pięciu elementom omawianym w dostarczonej prezentacji
 „BAiSM - Zajęcia 2: Modelowanie zagrożeń i architektura” (strony PDF 3-5 i 11-12).

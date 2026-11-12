@@ -37,7 +37,7 @@ W - wysokie. Oceny są wstępne; uwzględniają znane ograniczenia HTTPS i WebVi
 | Z05 | Przechwycenie lub ponowne użycie QR pozwala uzyskać sesję terminala. **F3-F4, F11, P3**. | S, E | Ś/W | Wysokie | Zredukować: QR jednorazowy (60 s), osobny sekret i potwierdzenia obu urządzeń. |
 | Z06 | Złośliwy deep link uruchamia niezamierzoną operację. **F11, P1**. | T, E | N/W | Średnie | Zredukować: zweryfikowane App Links, walidacja parametrów i potwierdzenie operacji. |
 | Z07 | HTTP lub błędna walidacja certyfikatu umożliwia podsłuch i zmianę danych. **F3-F4**. | I, T | N/W | Średnie | Zredukować: HTTPS i poprawna walidacja certyfikatów; HTTP tylko lokalnie w developmencie. |
-| Z08 | Podmieniony kod mapy manipuluje widokiem lub ujawnia dane WebView. **P2, F19-F20**. | T, I | N/Ś | Niskie | Zredukować: izolacja WebView, CSP i integralność skryptów; bez sesji API i prywatnych plików. |
+| Z08 | Podmieniony kod mapy manipuluje widokiem lub ujawnia dane WebView, w tym granice pól. **P2, F16, F19-F20**. | T, I | N/Ś | Niskie | Zredukować: izolacja WebView, CSP, integralność skryptów i walidacja geometrii; nazwy jako tekst, bez sesji API i prywatnych plików. |
 | Z09 | Brak śladu audytowego utrudnia ustalenie wykonawcy operacji. **P3, D3**. | R | Ś/Ś | Średnie | Zredukować: audyt serwerowy zapisuje wykonawcę, obiekt, czas i wynik; terminal nie zmienia wpisów. |
 | Z10 | Duże lub masowo wysyłane zdjęcia przeciążają API. **F3, P3, D4**. | D | Ś/Ś | Średnie | Zredukować: limity żądań, rozmiaru pliku i obrazu oraz przestrzeni gospodarstwa. |
 
@@ -49,10 +49,9 @@ wierszu wynik, link do dowodu oraz ocenę ryzyka pozostałego po zabezpieczeniac
 
 - [Karta projektu i plan parowania](../../README.md).
 - [DFD i identyfikatory elementów](README.md).
-- [Klient API](../../mobile/src/services/agriOpsApi.ts): `normalizeApiUrl` (linie 29-44) i cookies w `request` (linie 59-67).
-- [Konfiguracja WebView](../../mobile/src/screens/TractorScreen.tsx): ograniczenia cookies, plików i nawigacji (linie 26-36).
-- [Dokument mapy](../../mobile/src/map/mapHtml.ts): CSP, przypięta wersja Leaflet i integralność zasobów (linie 4-8).
-- [Przegląd backendu i bazy](../../../agriops-docs/docs/security/backend-database-security-review.md): kontrole dostępu, sesji, uploadu i otwarte uwagi; dokument w sąsiednim repozytorium dokumentacji AgriOps.
+- [Klient API](../../mobile/src/services/agriOpsApi.ts): walidacja adresu, cookies i Origin.
+- [Konfiguracja mapy pól](../../mobile/src/map/FieldsMap.tsx): ograniczenia cookies, plików i nawigacji.
+- [Dokument mapy](../../mobile/src/map/mapHtml.ts): CSP, przypięta wersja Leaflet, integralność zasobów i bezpieczne przekazanie nazw.
 - OWASP: [MASVS-STORAGE-1](https://mas.owasp.org/MASVS/controls/MASVS-STORAGE-1/), [MASVS-STORAGE-2](https://mas.owasp.org/MASVS/controls/MASVS-STORAGE-2/), [MASVS-AUTH-1](https://mas.owasp.org/MASVS/controls/MASVS-AUTH-1/), [MASVS-NETWORK-1](https://mas.owasp.org/MASVS/controls/MASVS-NETWORK-1/), [MASVS-PLATFORM-1](https://mas.owasp.org/MASVS/controls/MASVS-PLATFORM-1/), [MASVS-PLATFORM-2](https://mas.owasp.org/MASVS/controls/MASVS-PLATFORM-2/).
 
 Metoda STRIDE, macierz ryzyka i powiązanie zagrożenia z wymaganiem pochodzą
