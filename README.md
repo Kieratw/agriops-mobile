@@ -33,7 +33,7 @@ Do obserwacji pola można będzie zrobić nowe zdjęcie kamerą albo wybrać ist
 | Właściciel | Przeglądać dane swoich gospodarstw, planować zlecenia, parować i odłączać terminale, przeglądać zdjęcia i próbki oraz zatwierdzać raporty prac. | Odczytywać ani zmieniać danych cudzych gospodarstw. |
 | Terminal ciągnika | Po sparowaniu odczytywać przydzielone pola i zadania, rejestrować przebieg pracy oraz dodawać zdjęcia, lokalizacje i punkty próbek w dozwolonym zakresie. | Zarządzać dostępem, tworzyć i edytować pól, zatwierdzać własnych raportów ani pobierać danych innych gospodarstw lub nieprzydzielonych zadań. |
 
-Terminal otrzymuje własną sesję, którą właściciel może odwołać. Zakres dostępu sprawdza serwer przy każdym żądaniu. W obecnym szkielecie wybór Właściciel / Ciągnik przełącza tylko ekran; pełne role i parowanie są planowane.
+Terminal otrzymuje własną sesję, którą właściciel może odwołać. Zakres dostępu sprawdza serwer przy każdym żądaniu. Parowanie odbywa się na karcie ciągnika w webie.
 
 ## 3. Dane i ich klasyfikacja
 
@@ -55,7 +55,7 @@ W tabeli opisano zakres docelowy do MVP. Obecny stan implementacji znajduje się
 
 | Wymagana funkcja | Realizacja w aplikacji | Termin |
 | --- | --- | --- |
-| Logowanie z tokenami i co najmniej dwie role | Sesja właściciela oraz osobna sesja terminala ciągnika. Terminal wyświetla jednorazowy QR; właściciel otwiera zweryfikowany link i zatwierdza parowanie. Kontrola ról, gospodarstwa i przydzielonych zadań po stronie backendu. | Z3–Z5 |
+| Logowanie z tokenami i co najmniej dwie role | Sesja właściciela oraz osobna sesja terminala ciągnika. Właściciel wyświetla QR w webie i zatwierdza próbę zgłoszoną przez telefon. Kontrola ról, gospodarstwa i przydzielonych zadań po stronie backendu. | Z3–Z5 |
 | Własny backend/API | Własne API AgriOps w ASP.NET Core; rozszerzenie o sesje terminali, parowanie i funkcje mobilnego MVP. | Z3–Z5 |
 | Lokalne przechowywanie danych wrażliwych | Token sesji w magazynie systemowym przez expo-secure-store; usunięcie przy wylogowaniu. Ochrona lokalnego szkicu raportu i próbki. | Z4 |
 | Co najmniej trzy uprawnienia systemowe | Kamera do zdjęć i QR, lokalizacja do oznaczania punktów, powiadomienia do przypomnienia o dokończeniu szkicu próbki. Pokaz na Androidzie 13 lub nowszym; obsługa odmowy każdej zgody. | Z4–Z5 |
@@ -67,17 +67,14 @@ Galeria będzie dostępna przez systemowy Photo Picker, który udostępnia aplik
 
 ### Zabezpieczenie parowania QR
 
-Parowanie jest planowane na kolejny etap. Docelowy przebieg:
+1. Właściciel w webie otwiera kartę aktywnego ciągnika i w sekcji **Przypisane urządzenia** wybiera **Sparuj terminal**. Kod jest ważny przez 5 minut.
+2. Telefon skanuje QR systemowym aparatem. AgriOps Mobile wyświetla nazwę gospodarstwa i ciągnika. Po kliknięciu **Połącz jako terminal** telefon wyświetla sześciocyfrowy numer.
+3. Właściciel porównuje numer z wyświetlonym w webie i klika **Zatwierdź urządzenie**. Telefon odbiera sesję, zapisuje ją w Android Keystore przez Expo SecureStore i wyświetla zaplanowane operacje przypisane do ciągnika.
+4. **Odłącz terminal** na karcie ciągnika odbiera dostęp przy kolejnym żądaniu telefonu. Zatwierdzenie nowego terminala również kończy poprzednie aktywne przypisanie typu Terminal.
 
-1. Tablet w ciągniku rozpoczyna próbę parowania. Backend generuje kryptograficznie losowy kod o co najmniej 128 bitach losowości oraz osobny sekret tej próby. Tablet wyświetla QR z linkiem HTTPS; sekret pozostaje na tablecie. QR nie zawiera hasła ani tokenu sesji.
-2. Właściciel skanuje QR telefonem. Zweryfikowany Android App Link otwiera w aplikacji ekran potwierdzenia. Jeśli właściciel nie jest zalogowany, najpierw przechodzi logowanie. Samo otwarcie linku i pobranie podglądu nie zatwierdza ani nie zużywa kodu.
-3. Właściciel wybiera gospodarstwo i ciągnik, porównuje kod potwierdzenia z widocznym na tablecie i zatwierdza operację. Backend sprawdza jego dostęp do gospodarstwa i maszyny, a następnie wiąże próbę z zatwierdzonym przypisaniem. Tego przypisania nie można nadpisać kolejnym żądaniem; zmiana wymaga anulowania próby i nowego kodu. Rola i zakres sesji wynikają z danych serwera.
-4. Tablet pokazuje wybrane gospodarstwo i ciągnik. Osoba przy tablecie potwierdza przypisanie, a tablet przedstawia swój sekret przy odbiorze sesji. Posiadanie samego zdjęcia QR nie wystarcza do odebrania sesji ani zakończenia parowania zdalnie.
-5. Backend atomowo kończy próbę parowania i wydaje sesję tylko temu terminalowi. Ponowne użycie lub równoległa próba odbioru nie może utworzyć drugiej sesji. Właściciel może później odwołać dostęp terminala.
+Backend przechowuje skróty kodu, sekretu próby i tokenu sesji. Kod QR jest we fragmencie linku HTTPS, który nie trafia do żądania strony. Weryfikacja sesji odbywa się przy każdym pobraniu zleceń.
 
-Kod wygasa po 60 sekundach, liczonych przez backend. Zatwierdzenia dotyczą jednej próby parowania i nie przenoszą się na nowy kod. Backend przechowuje skróty kodu i sekretu próby, a terminal usuwa swój sekret po zakończeniu lub wygaśnięciu parowania. Endpointy tworzenia, zatwierdzania i odpytywania prób mają limity żądań. Kodów, sekretów i tokenów nie zapisujemy w logach; komunikacja odbywa się przez HTTPS.
-
-Powiązanie aplikacji z domeną zostanie skonfigurowane przez Android App Links: wpis w aplikacji i plik `assetlinks.json` na serwerze z odciskiem certyfikatu podpisującego aplikację. Wersja publikowana użyje certyfikatu wydania. Aplikacja przyjmie wyłącznie ustaloną domenę i ścieżki; dane ze skanu nie zmieniają adresu backendu ani nie uruchamiają przekierowania pod dowolny adres.
+Przed odbiorem na telefonie zastosuj migrację `AddTerminalPairings` i zbuduj nową aplikację Android. Ustaw ten sam adres HTTPS w `EXPO_PUBLIC_APP_ORIGIN` (Android) i `TERMINAL_APP_ORIGIN` (web, domyślnie `https://agriops.pl`). `EXPO_PUBLIC_API_URL` musi wskazywać API HTTPS tego samego środowiska. Na domenie web ustaw `TERMINAL_ANDROID_CERT_FINGERPRINTS` na odcisk SHA-256 certyfikatu podpisującego instalowany APK, z dwukropkami między bajtami. Kilka odcisków oddziel przecinkami. Web opublikuje deklarację pod `/.well-known/assetlinks.json`. Dla wydania z Google Play użyj certyfikatu podpisywania aplikacji z Play Console.
 
 Sprawdzimy:
 

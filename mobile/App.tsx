@@ -1,21 +1,46 @@
 import { useEffect, useState } from 'react';
-import { BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
+import { BackHandler, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { OwnerScreen } from './src/screens/OwnerScreen';
-import { TractorScreen } from './src/screens/TractorScreen';
+import { TerminalScreen } from './src/screens/TerminalScreen';
+import { pairingCodeFromUrl } from './src/services/terminalApi';
 import { colors } from './src/theme';
 
 type Screen = 'home' | 'owner' | 'tractor';
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('home');
+  const [pairingCode, setPairingCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    let receivedLink = false;
+    function openLink(url: string | null | undefined) {
+      const code = pairingCodeFromUrl(url ?? null);
+      if (active && code) {
+        setPairingCode(code);
+        setScreen('tractor');
+      }
+    }
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      receivedLink = true;
+      openLink(url);
+    });
+    void Linking.getInitialURL().then(url => { if (!receivedLink) openLink(url); }).catch(() => {});
+    return () => { active = false; subscription.remove(); };
+  }, []);
+
+  function goHome() {
+    setPairingCode(null);
+    setScreen('home');
+  }
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
       if (screen === 'home') return false;
-      setScreen('home');
+      goHome();
       return true;
     });
     return () => subscription.remove();
@@ -31,7 +56,7 @@ export default function App() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Wróć do wyboru trybu"
-              onPress={() => setScreen('home')}
+              onPress={goHome}
               style={styles.back}
             >
               <Text style={styles.backText}>← Wstecz</Text>
@@ -40,7 +65,7 @@ export default function App() {
         </View>
         {screen === 'home' && <HomeScreen onOwner={() => setScreen('owner')} onTractor={() => setScreen('tractor')} />}
         {screen === 'owner' && <OwnerScreen />}
-        {screen === 'tractor' && <TractorScreen />}
+        {screen === 'tractor' && <TerminalScreen key={pairingCode ?? 'saved'} code={pairingCode} />}
       </SafeAreaView>
     </SafeAreaProvider>
   );
