@@ -16,7 +16,10 @@ module.exports = ({ config }) => {
           action: 'VIEW',
           autoVerify: true,
           category: ['BROWSABLE', 'DEFAULT'],
-          data: [{ scheme: 'https', host: origin.hostname, path: '/terminal/pair' }],
+          data: [
+            { scheme: 'https', host: origin.hostname, path: '/terminal/pair' },
+            { scheme: 'https', host: origin.hostname, pathPrefix: '/fields/' },
+          ],
         },
       ],
     },

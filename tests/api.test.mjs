@@ -49,16 +49,22 @@ test('login sends credentials to the configured server as a cookie-session reque
     request = { url, options };
     return Response.json({});
   });
-  await new AgriOpsApi('https://example.com').login(' test@example.com ', 'test-only');
+  await new AgriOpsApi('https://example.com', 'https://app.example.com').login(' test@example.com ', 'test-only');
   assert.equal(request.url, 'https://example.com/api/auth/login');
   assert.equal(request.options.method, 'POST');
   assert.equal(request.options.credentials, 'include');
+  assert.equal(request.options.headers.Origin, 'https://app.example.com');
   assert.deepEqual(JSON.parse(request.options.body), { email: 'test@example.com', password: 'test-only' });
 });
 
 test('logout accepts the backend empty 204 response', async t => {
-  t.mock.method(globalThis, 'fetch', async () => new Response(null, { status: 204 }));
-  await new AgriOpsApi('https://example.com').logout();
+  let headers;
+  t.mock.method(globalThis, 'fetch', async (_, options) => {
+    headers = options.headers;
+    return new Response(null, { status: 204 });
+  });
+  await new AgriOpsApi('https://example.com', 'https://app.example.com').logout();
+  assert.equal(headers.Origin, 'https://app.example.com');
 });
 
 test('forbidden access is distinguishable from an expired session', async t => {
@@ -70,4 +76,18 @@ test('forbidden access is distinguishable from an expired session', async t => {
 test('network failure produces an actionable message', async t => {
   t.mock.method(globalThis, 'fetch', async () => { throw new TypeError('Network request failed'); });
   await assert.rejects(new AgriOpsApi('https://example.com').farms(), /Brak połączenia z serwerem/);
+});
+
+test('field boundaries are preserved while missing or invalid shapes do not hide fields', async t => {
+  const geometry = { type: 'Polygon', coordinates: [[[19, 52], [19.01, 52], [19.01, 52.01], [19, 52]]] };
+  t.mock.method(globalThis, 'fetch', async () => Response.json([
+    { ...field, geomJson: JSON.stringify(geometry) },
+    { ...field, geomJson: '{invalid' },
+    { ...field, geomJson: null },
+  ]));
+  const result = await new AgriOpsApi('https://example.com').fields(farmId);
+  assert.equal(result.length, 3);
+  assert.deepEqual(result[0].geometry, geometry);
+  assert.equal(result[1].geometry, null);
+  assert.equal(result[2].geometry, null);
 });
