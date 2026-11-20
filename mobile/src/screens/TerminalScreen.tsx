@@ -295,6 +295,10 @@ export function TerminalScreen({ code }: { code: string | null }) {
       setError('Podaj prawidłowy link HTTPS parowania (/terminal/pair#...) lub 43-znakowy kod jednorazowy.');
       return;
     }
+    if (parsed === code) {
+      setError('Poproś właściciela o nowy kod QR.');
+      return;
+    }
     setManualInput('');
     setIgnoreLink(false);
     setScannedCode(parsed);

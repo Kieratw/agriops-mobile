@@ -15,6 +15,8 @@ const fieldId = '22222222-2222-2222-2222-222222222222';
 test('Android accepts the expected HTTPS pairing link, raw code input, and verified field deep links', () => {
   const origin = new URL(config.appOrigin).origin;
   assert.equal(pairingCodeFromUrl(`${origin}/terminal/pair#${code}`), code);
+  assert.equal(pairingCodeFromUrl(` ${origin}/terminal/pair#${code}\n`), code);
+  assert.equal(pairingCodeFromUrl(code), null);
   assert.equal(pairingCodeFromInput(` ${origin}/terminal/pair#${code} `), code);
   assert.equal(pairingCodeFromInput(` #${code} `), code);
   assert.equal(pairingCodeFromInput(code), code);
